@@ -11,8 +11,15 @@ import { sortBy } from 'lodash-es';
 import { computed, ref } from 'vue';
 import { txx } from '../../utils/utils';
 
-const props = withDefaults(defineProps<{ activities: ActivityEntry[] }>(), { activities: () => [] });
-const emit = defineEmits<{ (event: 'comment', payload: ActivityEntry[]): void }>();
+const props = withDefaults(
+    defineProps<{
+        activities: ActivityEntry[];
+    }>(),
+    { activities: () => [] },
+);
+const emit = defineEmits<{
+    (event: 'comment', payload: ActivityEntry[]): void;
+}>();
 
 const filter = computed(() => ({
     ids: Array.from(new Set(props.activities.map(a => (a.personId > 0 ? a.personId : null)))).filter(notNullish),
@@ -43,30 +50,30 @@ const onComment = () => {
     emit('comment', activity);
     newComment.value = '';
 };
-const onCancelComment = () => {
-    newComment.value = '';
-};
+const onCancelComment = () => (newComment.value = '');
 </script>
 <template>
-    <div class="flex flex-col gap-4 md:flex-row">
-        <div class="w-48 font-bold">Aktivität</div>
-        <div class="flex flex-grow flex-col gap-3">
-            <div class="group flex flex-col gap-2">
-                <Textarea
-                    v-model="newComment"
-                    placeholder="Kommentar hinzufügen"
-                    @keydown.enter.meta.stop="onComment"
-                    @keydown.escape.stop="onCancelComment"
-                />
-                <div class="hidden justify-end gap-2 group-focus-within:flex">
-                    <Button outlined size="S" @click="onCancelComment">Abbrechen</Button>
-                    <Button size="S" @click="onComment"> Kommentieren </Button>
-                </div>
+    <div class="flex flex-col gap-4">
+        <div>
+            <div class="text-lg font-bold">Aktivitäten</div>
+        </div>
+        <div class="group flex flex-col gap-2">
+            <Textarea
+                v-model="newComment"
+                placeholder="Kommentar hinzufügen"
+                :rows="1"
+                @keydown.enter.meta.stop="onComment"
+                @keydown.escape.stop="onCancelComment"
+            />
+            <div class="flex gap-2">
+                <Button :disabled="!newComment" :outlined="true" size="S" @click="onComment"> Kommentieren </Button>
             </div>
+        </div>
+        <div class="flex flex-col gap-3">
             <div v-for="(entry, index) in transformedActivities" :key="index">
                 <div v-if="entry.type === 'comment'" class="flex flex-col items-end">
                     <div
-                        class="border-basic-divider bg-basic-b-pale flex w-full flex-grow flex-col gap-2 rounded-lg border px-3 py-2"
+                        class="border-basic-divider bg-foreground-secondary flex w-full flex-grow flex-col gap-2 rounded-lg border px-3 py-2"
                     >
                         <div v-if="entry.person" class="text-basic-tertiary flex items-center gap-2">
                             <DomainObject :domain-object="entry.person" size="XS" />
@@ -117,7 +124,11 @@ const onCancelComment = () => {
                         >{{ entry.type }}:
                         {{
                             Object.entries(entry.value)
-                                .map(([key, value]) => `${key}: ${value}`)
+                                .map(([key, value]) =>
+                                    typeof value === 'string'
+                                        ? `${key}: ${value}`
+                                        : `${key}: ${value.from || '""'} → ${value.to || '""'}`,
+                                )
                                 .join(', ')
                         }}</span
                     >

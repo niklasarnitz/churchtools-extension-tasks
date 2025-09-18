@@ -11,14 +11,14 @@ import { usePlugin } from './usePlugin';
 import { useTags } from './useTags';
 import { useTasks } from './useTasks';
 
-export function useTask(projectId: MaybeRefOrGetter<number>, taskId: MaybeRefOrGetter<number>) {
+export function useTask(projectId: MaybeRefOrGetter<number>, taskId: MaybeRefOrGetter<number | undefined>) {
     const pId = computed(() => toValue(projectId));
     const tId = computed(() => toValue(taskId));
     const { moduleId } = usePlugin();
     const { updateCustomDataValue, deleteCustomDataValue } = useCustomModuleDataValuesMutations<Task>(moduleId, pId);
     const { tasksMap, findParent, calculateDueDate, getSuperParent, getPercentFullfilled } = useTasks(pId);
 
-    const task = computed(() => tasksMap.value[tId.value] ?? {});
+    const task = computed(() => (tId.value ? (tasksMap.value[tId.value] ?? {}) : undefined));
 
     const percentFullfilled = computed(() => {
         return getPercentFullfilled(task.value);

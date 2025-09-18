@@ -23,9 +23,11 @@ export function useTasks(projectId: MaybeRefOrGetter<number>) {
             type: 'task',
         });
     };
-    const updateTask = async (task: TransformedTask, diff: Partial<TransformedTask> = {}) => {
+    const updateTask = async (task: TransformedTask, diff?: any) => {
         const activity = task.activity;
-        activity?.push({ personId: currentUser.id, date: new Date().toISOString(), type: 'update', value: diff });
+        if (diff) {
+            activity?.push({ personId: currentUser.id, date: new Date().toISOString(), type: 'update', value: diff });
+        }
         const payload = { ...task, type: 'task' as const, dataCategoryId: pId.value };
         await updateCustomDataValue(payload);
     };
@@ -56,18 +58,19 @@ export function useTasks(projectId: MaybeRefOrGetter<number>) {
     });
     const tasksMap = computed(() => Object.fromEntries(tasks.value.map(t => [t.id, t])));
 
-    const getObjectDiff = (obj1: Partial<Task>, obj2: Partial<Task>): (keyof Task)[] => {
-        return (Object.keys(obj1) as (keyof Task)[]).reduce<(keyof Task)[]>(
+    const getObjectDiff = (obj1: Partial<Task>, obj2: Partial<Task>) => {
+        return (Object.keys(obj1) as (keyof Task)[]).reduce<Partial<Record<keyof Task, { from: any; to: any }>>>(
             (result, key) => {
-                if (!Object.prototype.hasOwnProperty.call(obj2, key)) {
-                    result.push(key);
-                } else if (isEqual(obj1[key], obj2[key])) {
-                    const resultKeyIndex = result.indexOf(key);
-                    result.splice(resultKeyIndex, 1);
+                if (!Object.prototype.hasOwnProperty.call(obj1, key)) {
+                    result[key] = { from: obj2[key], to: undefined };
+                } else if (!Object.prototype.hasOwnProperty.call(obj2, key)) {
+                    result[key] = { from: undefined, to: obj1[key] };
+                } else if (!isEqual(obj1[key], obj2[key])) {
+                    result[key] = { from: obj2[key], to: obj1[key] };
                 }
-                return result as (keyof Task)[];
+                return result;
             },
-            Object.keys(obj2) as (keyof Task)[],
+            {},
         );
     };
 

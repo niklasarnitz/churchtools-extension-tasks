@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toRef } from 'vue';
+import { computed } from 'vue';
 import List from '../../components/List.vue';
 import ProgressRing from '../../components/ProgressRing.vue';
 import { taskStore } from '../../composables/storeTasks';
@@ -9,8 +9,9 @@ import ViewWrapper from './ViewWrapper.vue';
 const props = defineProps<{
     projectId: string;
 }>();
+const projectId = computed(() => parseInt(props.projectId));
 
-const { tasks, tasksMap, getPercentFullfilled } = useTasks(toRef(() => parseInt(props.projectId)));
+const { tasks, tasksMap, getPercentFullfilled } = useTasks(projectId.value);
 const store = taskStore();
 
 const tasksByParent = computed(() => {
@@ -33,9 +34,9 @@ const boardlists = computed(() => {
 });
 </script>
 <template>
-    <ViewWrapper :sub-task-toggle="false">
+    <ViewWrapper :project-id="projectId" :sub-task-toggle="false">
         <template v-for="list in boardlists" :key="list.id">
-            <List :items="tasksByParent[list.id]" :list="list" :show-task="true">
+            <List :items="tasksByParent[list.id]" :list="list" :project-id="projectId" :show-task="true">
                 <template #header>
                     <ProgressRing class="progress-icon relative text-[20px] text-gray-500" :percent="list.percentage" />
                     <span>{{ list.name }}</span>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button, DropdownMenu, Tag } from '@churchtools/styleguide';
+import { DELETE_ICON, EDIT_ICON } from '@churchtools/utils';
 import { sortBy } from 'lodash-es';
 import { computed, onMounted, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
@@ -121,14 +122,14 @@ const listContextMenu = computed(() => {
                 {
                     id: 'edit',
                     label: 'Bearbeiten',
-                    icon: 'fas fa-pen',
+                    icon: EDIT_ICON,
                     callback: () => (listIsOpen.value = props.list),
                 },
                 {
                     id: 'delete',
                     label: 'Löschen',
                     disabled: props.list.isDefault,
-                    icon: { icon: 'fas fa-trash-alt', class: 'text-red-500' },
+                    icon: { icon: DELETE_ICON, class: 'text-red-500' },
                     callback: () => deleteList(props.list.id),
                 },
             ],

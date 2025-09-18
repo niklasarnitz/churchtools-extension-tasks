@@ -10,7 +10,7 @@ import useProjects from './useProjects';
 const props = defineProps<{ project?: Project }>();
 const emit = defineEmits<{ (event: 'close'): void }>();
 
-const proj = ref(props.project ?? ({} as Project));
+const proj = ref({ ...(props.project ?? ({} as Project)) });
 
 const { ctColors } = useColors();
 const colors = computed(() => ctColors.map(c => ({ id: c.key, label: c.key, color: c, icon: 'fas fa-circle' })));
@@ -52,13 +52,13 @@ const onSearchForIcon = (query: string) => {
 <template>
     <DialogLarge
         :context="txx('Aufgabenverwaltung')"
-        :title="txx('Neues Projekt erstellen')"
+        :title="project ? txx('Projekt bearbeiten') : txx('Neues Projekt erstellen')"
         @close="emit('close')"
         @save="onSave"
     >
         <div class="flex flex-col gap-4">
-            <Input v-model="proj.name" label="Name" />
-            <Textarea v-model="proj.description" label="Beschreibung" />
+            <Input v-model="proj.name" label="Name" :max-length="100" />
+            <Textarea v-model="proj.description" label="Beschreibung" :max-length="300" />
             <SelectDropdown
                 v-model="proj.icon"
                 emit-id

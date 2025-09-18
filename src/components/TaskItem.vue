@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button, DomainObject, DropdownMenu, Tag } from '@churchtools/styleguide';
+import { DELETE_ICON, EDIT_ICON } from '@churchtools/utils';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTask } from '../composables/useTask.ts';
@@ -98,12 +99,12 @@ const contextMenu = computed(() => [
     },
     {
         items: [
-            { id: 'edit', label: 'Bearbeiten', icon: 'fas fa-pen', callback: () => openTask() },
+            { id: 'edit', label: 'Bearbeiten', icon: EDIT_ICON, callback: () => openTask() },
             { id: 'duplicate', label: 'Duplizieren', icon: 'fas fa-copy', callback: () => duplicateTask() },
             {
                 id: 'delete',
                 label: 'Löschen',
-                icon: { icon: 'fas fa-trash-alt', class: 'text-red-500' },
+                icon: { icon: DELETE_ICON, class: 'text-red-500' },
                 callback: () => deleteRecursive(props.item),
             },
         ],

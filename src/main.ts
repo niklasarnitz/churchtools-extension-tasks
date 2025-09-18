@@ -8,13 +8,13 @@ import { VueQueryPlugin } from '@tanstack/vue-query';
 import { provideApolloClient } from '@vue/apollo-composable';
 import { createPinia } from 'pinia';
 import App from './App.vue';
-import './assets/fontawesome/css/all.css';
 import { router } from './router';
 import './tailwind.css';
 import '/node_modules/@churchtools/styleguide/dist/styleguide.css';
 
 // only import reset.css in development mode to keep the production bundle small and to simulate CT environment
 if (import.meta.env.MODE === 'development') {
+    import('./assets/fontawesome/css/all.css');
     import('./utils/reset.css');
 }
 

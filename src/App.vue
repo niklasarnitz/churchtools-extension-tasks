@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { Grid, GridHeader } from '@churchtools/styleguide';
-import { useBodyScrollbarWidth } from '@churchtools/utils';
+import { Grid, GridHeader, InfoMessageContainer, LoadingMessage } from '@churchtools/styleguide';
+import { useBodyScrollbarWidth, useToasts } from '@churchtools/utils';
 import { computed } from 'vue';
 import type { ComponentProps } from 'vue-component-type-helpers';
 import { useRoute } from 'vue-router';
+import { usePlugin } from './composables/usePlugin';
 import { createOrEditProject } from './project/projectHelper';
-import useProjects from './project/useProjects';
 import { ICONS, txx } from './utils/utils';
 
 useBodyScrollbarWidth();
+
+const { isLoading } = usePlugin();
 
 const isSmallScreen = computed(() => window.innerWidth < 768);
 const route = useRoute();
@@ -19,7 +21,7 @@ const actions = computed(() => {
             {
                 color: 'violet',
                 icon: 'fas fa-bug',
-                href: 'https://github.com/aschojz/churchtools-tasks/issues',
+                href: 'https://github.com/aschojz/churchtools-extension-tasks/issues',
                 label: isSmallScreen.value ? '' : txx('Fehler melden'),
                 outlined: true,
                 size: 'S',
@@ -35,48 +37,45 @@ const actions = computed(() => {
                 icon: 'fas fa-plus',
                 label: isSmallScreen.value ? '' : txx('Neues Projekt'),
                 size: 'S',
-                onClick: createOrEditProject,
+                onClick: () => createOrEditProject(),
             },
         ]);
     }
     return actions;
 });
 
-const { projects: p } = useProjects();
-const projects = computed(() => {
-    const menu: ComponentProps<typeof Grid>['menu'] = [{ items: [] }];
-    p.value.forEach(proj =>
-        menu[0].items.push({
-            title: proj.name,
-            icon: proj.icon ?? ICONS.DEFAULT_PROJECT,
-            color: proj.color ?? 'basic',
-            key: proj.id.toString(),
-            to: { name: 'project', params: { projectId: proj.id } },
-        }),
-    );
-    return menu;
-});
+const isDev = computed(() => import.meta.env.MODE === 'development');
+const { toasts, removeToast } = useToasts();
+const removeInfoMessage = (infoMessage: (typeof toasts.value)[0]) => removeToast(infoMessage.id);
 </script>
 <template>
     <div id="tasks" class="flex grow flex-col" style="--menu-height: 0px">
-        <Grid :menu="projects" min-height="56px" storage-key="ext-tasks">
+        <LoadingMessage v-if="isLoading" />
+        <Grid v-else min-height="56px" storage-key="ext-tasks" style="--sidebar-left: 0px">
             <template #header>
                 <GridHeader :actions="actions" :icon="ICONS.MAIN" :title="txx('Aufgabenverwaltung')" />
             </template>
-            <RouterView />
+            <div class="col-span-2 flex grow">
+                <RouterView />
+            </div>
         </Grid>
     </div>
     <div id="modal-container"></div>
+    <div v-if="isDev">
+        <InfoMessageContainer :messages="toasts" @close-info-message="removeInfoMessage" />
+    </div>
 </template>
 <style>
-#tasks {
-    --color-link: var(--color-accent-bright);
-    a {
-        color: inherit;
-        text-decoration: none;
-    }
-    a:hover {
-        text-decoration: none;
+@layer oldcss {
+    #tasks {
+        --color-link: var(--color-accent-bright);
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: none;
+        }
     }
 }
 </style>

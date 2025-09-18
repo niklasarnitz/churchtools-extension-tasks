@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button, Input } from '@churchtools/styleguide';
+import { getFirstOrSelf } from '@churchtools/utils';
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import DialogList from '../../components/DialogList.vue';
@@ -26,10 +27,7 @@ const store = taskStore();
 const listIsOpen = ref(false);
 
 const route = useRoute();
-const taskIsOpen = computed(() => {
-    const taskId = route.params.taskId;
-    return Array.isArray(taskId) ? taskId[0] : taskId;
-});
+const taskIsOpen = computed(() => !!getFirstOrSelf(route.params.taskId));
 </script>
 <template>
     <div
@@ -78,7 +76,7 @@ const taskIsOpen = computed(() => {
                 <slot></slot>
             </div>
         </div>
-        <DialogTask v-if="taskIsOpen" :project-id="projectId" :task-id="parseInt(route.params.taskId)" />
+        <DialogTask v-if="taskIsOpen" :project-id="projectId" :task-id="getFirstOrSelf(route.params.taskId)" />
         <DialogList v-if="listIsOpen" :project-id="projectId" @close="listIsOpen = false" />
     </div>
 </template>
