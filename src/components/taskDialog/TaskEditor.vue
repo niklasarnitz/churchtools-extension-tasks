@@ -35,7 +35,7 @@ const emit = defineEmits<{
 const projectId = computed(() => props.projectId);
 const taskId = computed(() => props.taskId);
 
-const { tasksMap, isLoading, updateTask, getObjectDiff } = useTasks(projectId);
+const { tasksMap, updateTask, getObjectDiff } = useTasks(projectId);
 const { tagsArray } = useTags(projectId);
 const { parent, calculateDueDate, dueColor, toDayMonth } = useTask(projectId, taskId);
 
