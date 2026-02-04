@@ -25,11 +25,11 @@ export function useTask(projectId: MaybeRefOrGetter<number>, taskId: MaybeRefOrG
     });
 
     const parent = computed(() => {
-        const parent = findParent(task.value);
-        if (parent) {
-            parent.dueDate = calculateDueDate(parent);
+        const parentTask = findParent(task.value);
+        if (!parentTask) {
+            return parentTask;
         }
-        return parent;
+        return { ...parentTask, dueDate: calculateDueDate(parentTask) };
     });
 
     const superParent = computed(() => findParent(task.value) && getSuperParent(task.value));
@@ -54,6 +54,9 @@ export function useTask(projectId: MaybeRefOrGetter<number>, taskId: MaybeRefOrG
 
     const currentUser = useCurrentUser();
     const toggleTask = () => {
+        if (!task.value) {
+            return;
+        }
         const activity = task.value?.activity ?? [];
         activity.push({
             personId: currentUser.id,
@@ -62,7 +65,7 @@ export function useTask(projectId: MaybeRefOrGetter<number>, taskId: MaybeRefOrG
             value: !task.value.fullfilled,
         });
         const payload = { ...task.value, fullfilled: !task.value.fullfilled, activity };
-        updateCustomDataValue(payload);
+        updateCustomDataValue({ ...payload, dataCategoryId: pId.value, type: 'task' });
     };
     const deleteTask = () => deleteCustomDataValue({ id: tId.value, dataCategoryId: pId.value });
 

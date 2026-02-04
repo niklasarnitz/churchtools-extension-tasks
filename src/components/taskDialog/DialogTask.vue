@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { DialogLarge } from '@churchtools/styleguide';
-import { EDIT_ICON } from '@churchtools/utils';
 import { computed, ref, toRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTask } from '../../composables/useTask';
@@ -9,6 +8,8 @@ import { useProject } from '../../project/useProject';
 import { txx } from '../../utils/utils';
 import TaskDisplay from './TaskDisplay.vue';
 import TaskEditor from './TaskEditor.vue';
+
+const EDIT_ICON = 'fas fa-pen';
 
 const props = defineProps<{ taskId: string; projectId: number }>();
 const projectId = computed(() => props.projectId);
@@ -25,7 +26,7 @@ const resetRoute = () => {
     router.push({ ...router.currentRoute.value, params: undefined });
 };
 
-const { task } = useTask(projectId, taskId);
+const { task, toggleTask } = useTask(projectId, taskId);
 const { updateTask, getObjectDiff, createTask } = useTasks(projectId);
 
 const actions = computed(() => {
@@ -64,6 +65,8 @@ const onSave = async () => {
         const diff = getObjectDiff(internTask.value, task.value ?? {});
         await updateTask(internTask.value, diff);
         isEdit.value = false;
+    } else {
+        toggleTask();
     }
 };
 </script>

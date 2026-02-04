@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { Button, DropdownMenu, LoadingMessage, PageHeader, Subgrid } from '@churchtools/styleguide';
-import { ADD_ICON, DELETE_ICON, EDIT_ICON } from '@churchtools/utils';
 import { computed, toRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ICONS } from '../utils/utils';
 import { createOrEditProject } from './projectHelper';
 import { useProject } from './useProject';
+
+const ADD_ICON = 'fas fa-plus';
+const EDIT_ICON = 'fas fa-pen';
+const DELETE_ICON = 'fas fa-trash';
 
 const props = defineProps<{ projectId: string }>();
 defineEmits<{ (event: 'edit-project', project: Project): void }>();

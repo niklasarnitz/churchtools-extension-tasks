@@ -17,8 +17,9 @@ export function useLists(projectId: MaybeRefOrGetter<number>) {
     onMounted(() => createDefaultList());
     watch([() => pId.value, () => isLoading.value], () => createDefaultList());
     const createDefaultList = async () => {
-        if (!isLoading.value && !lists.value.some(l => l.isDefault) && !store.isCreatingDefaultList) {
-            store.isCreatingDefaultList = true;
+        const creating = store.isCreatingDefaultList[pId.value] ?? false;
+        if (!isLoading.value && !lists.value.some(l => l.isDefault) && !creating) {
+            store.isCreatingDefaultList[pId.value] = true;
             await createList({
                 name: 'Unsortiert',
                 sortKey: 0,
@@ -26,7 +27,7 @@ export function useLists(projectId: MaybeRefOrGetter<number>) {
                 isDefault: true,
                 isCollapsed: false,
             });
-            store.isCreatingDefaultList = false;
+            store.isCreatingDefaultList[pId.value] = false;
         }
     };
 

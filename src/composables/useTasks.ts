@@ -35,10 +35,70 @@ export function useTasks(projectId: MaybeRefOrGetter<number>) {
         return await deleteCustomDataValue({ id: taskId, dataCategoryId: pId.value });
     };
 
+    const moveTask = async (task: TransformedTask, newProjectId: number) => {
+        const { createCustomDataValue: createInNewProject } = useCustomModuleDataValuesMutations<Task>(
+            moduleId.value,
+            newProjectId,
+        );
+
+        const removeFromParent = async (child: TransformedTask) => {
+            const parent = findParent(child);
+            if (!parent) {
+                return;
+            }
+            const subTasks = (parent.subTasks ?? []).filter(id => id !== child.id);
+            await updateCustomDataValue({ ...parent, subTasks, dataCategoryId: pId.value, type: 'task' });
+        };
+
+        const cloneTaskTree = async (source: TransformedTask): Promise<TransformedTask> => {
+            const newSubTaskIds: number[] = [];
+            if (source.subTasks?.length) {
+                for (const subTaskId of source.subTasks) {
+                    const subTask = tasksMap.value[subTaskId];
+                    if (subTask) {
+                        const createdSubTask = await cloneTaskTree(subTask);
+                        newSubTaskIds.push(createdSubTask.id);
+                    }
+                }
+            }
+
+            const { id: _id, dataCategoryId: _dataCategoryId, ...payload } = source;
+            void _id;
+            void _dataCategoryId;
+            return (await createInNewProject({
+                ...payload,
+                list: undefined,
+                subTasks: newSubTaskIds,
+                dataCategoryId: newProjectId,
+                type: 'task',
+            })) as unknown as TransformedTask;
+        };
+
+        const deleteTaskTree = async (source: TransformedTask) => {
+            if (source.subTasks?.length) {
+                for (const subTaskId of source.subTasks) {
+                    const subTask = tasksMap.value[subTaskId];
+                    if (subTask) {
+                        await deleteTaskTree(subTask);
+                    }
+                }
+            }
+            await deleteCustomDataValue({ id: source.id, dataCategoryId: pId.value });
+        };
+
+        await removeFromParent(task);
+        const newTask = await cloneTaskTree(task);
+        await deleteTaskTree(task);
+        return newTask;
+    };
+
     const store = taskStore();
 
     const getPercentFullfilled = (task: TransformedTask) => {
         const all = task.subTasks?.length ?? 0;
+        if (all === 0) {
+            return 0;
+        }
         const fullfilled = (task.subTasks ?? [])?.map(st => tasksMap.value[st]).filter(st => st?.fullfilled);
         return Math.floor((fullfilled.length / all) * 100);
     };
@@ -59,46 +119,55 @@ export function useTasks(projectId: MaybeRefOrGetter<number>) {
     const tasksMap = computed(() => Object.fromEntries(tasks.value.map(t => [t.id, t])));
 
     const getObjectDiff = (obj1: Partial<Task>, obj2: Partial<Task>) => {
-        return (Object.keys(obj1) as (keyof Task)[]).reduce<Partial<Record<keyof Task, { from: any; to: any }>>>(
-            (result, key) => {
-                if (!Object.prototype.hasOwnProperty.call(obj1, key)) {
-                    result[key] = { from: obj2[key], to: undefined };
-                } else if (!Object.prototype.hasOwnProperty.call(obj2, key)) {
-                    result[key] = { from: undefined, to: obj1[key] };
-                } else if (!isEqual(obj1[key], obj2[key])) {
-                    result[key] = { from: obj2[key], to: obj1[key] };
-                }
-                return result;
-            },
-            {},
-        );
+        const allKeys = new Set<keyof Task>([
+            ...(Object.keys(obj1) as (keyof Task)[]),
+            ...(Object.keys(obj2) as (keyof Task)[]),
+        ]) as Set<keyof Task>;
+        return Array.from(allKeys).reduce<Partial<Record<keyof Task, { from: any; to: any }>>>((result, key) => {
+            if (!Object.prototype.hasOwnProperty.call(obj1, key)) {
+                result[key] = { from: obj2[key], to: undefined };
+            } else if (!Object.prototype.hasOwnProperty.call(obj2, key)) {
+                result[key] = { from: undefined, to: obj1[key] };
+            } else if (!isEqual(obj1[key], obj2[key])) {
+                result[key] = { from: obj2[key], to: obj1[key] };
+            }
+            return result;
+        }, {});
     };
 
-    const tasksInSearch = computed(() => {
+    const fuseInstance = computed(() => {
         if (store.search) {
-            const fuse = new Fuse(tasks.value, {
+            return new Fuse(tasks.value, {
                 includeScore: true,
                 minMatchCharLength: 2,
                 threshold: 0.4,
                 keys: ['name', { name: 'description', weight: 0.5 }, { name: 'url', weight: 0.3 }],
             });
-            return Object.fromEntries(
-                fuse.search(store.search).map(task => [task.item.id, { ...task.item, score: task.score }]),
-            );
         }
-        return Object.fromEntries(tasks.value.map(task => [task.id, { ...task, score: undefined }]));
+        return null;
+    });
+    const tasksInSearch = computed(() => {
+        if (!fuseInstance.value) {
+            return Object.fromEntries(tasks.value.map(task => [task.id, { ...task, score: undefined }]));
+        }
+        return Object.fromEntries(
+            fuseInstance.value.search(store.search).map(task => [task.item.id, { ...task.item, score: task.score }]),
+        );
     });
 
     const { getListById, lists } = useLists(pId);
     const showTask = (task: TransformedTask) => {
         const defaultListId = lists.value.find(l => l.isDefault)?.id ?? 0;
         const listId = task.list && getListById(task.list) ? task.list : defaultListId;
-        const showCompleted = getListById(listId)?.showCompleted ?? false;
-        const showSubTasks = getListById(listId)?.showSubTasks ?? false;
+        const listShowCompleted = getListById(listId)?.showCompleted ?? false;
+        const listShowSubTasks = getListById(listId)?.showSubTasks ?? false;
+        const showCompleted = store.showFullfilled ? listShowCompleted : false;
+        const showSubTasks = store.showSubTasks ? listShowSubTasks : false;
+        const parent = findParent(task);
         return (
             tasksInSearch.value[task.id] &&
             ((!showCompleted && !task.fullfilled) || showCompleted) &&
-            ((!showSubTasks && !task.parent) || showSubTasks)
+            ((!showSubTasks && !parent) || showSubTasks)
         );
     };
 
@@ -137,6 +206,7 @@ export function useTasks(projectId: MaybeRefOrGetter<number>) {
         getObjectDiff,
         calculateDueDate,
         deleteTask,
+        moveTask,
         isLoading,
         findParent,
         getSuperParent,

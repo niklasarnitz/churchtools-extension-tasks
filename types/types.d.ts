@@ -7,6 +7,8 @@ interface Project {
     shorty: string;
     securityLevelId: number;
     customModuleId: number;
+    allowedUsers?: number[];
+    readOnlyUsers?: number[];
 }
 interface TaskList {
     type: 'list';
@@ -33,6 +35,31 @@ interface Task {
     assignedTo?: number[];
     subTasks?: number[];
     comments?: ActivityEntry[];
+    status?: 'open' | 'in-progress' | 'blocked' | 'done';
+    priority?: 'low' | 'medium' | 'high' | 'critical';
+    recurrencePattern?: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+    recurrenceLastCreated?: string;
+    reminderMinutes?: number;
+    attachments?: Attachment[];
+    checklist?: ChecklistItem[];
+    timeEstimate?: number;
+    timeSpent?: number;
+    canViewUsers?: number[];
+    canEditUsers?: number[];
+}
+
+interface Attachment {
+    id: string;
+    name: string;
+    url: string;
+    uploadedBy?: number;
+    uploadedAt?: string;
+}
+
+interface ChecklistItem {
+    id: string;
+    title: string;
+    completed: boolean;
 }
 interface Tag {
     type: 'tag';

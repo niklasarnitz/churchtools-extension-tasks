@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Button, DropdownMenu, Tag } from '@churchtools/styleguide';
-import { DELETE_ICON, EDIT_ICON } from '@churchtools/utils';
 import { sortBy } from 'lodash-es';
 import { computed, onMounted, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
@@ -11,6 +10,9 @@ import DialogList from './DialogList.vue';
 import NewTask from './NewTask.vue';
 import Task from './TaskItem.vue';
 
+const EDIT_ICON = 'fas fa-pen';
+const DELETE_ICON = 'fas fa-trash';
+
 const store = taskStore();
 
 const props = withDefaults(
@@ -19,9 +21,10 @@ const props = withDefaults(
         items: TransformedTask[];
         showTask?: boolean;
         isDraggable?: boolean;
+        allowNewTask?: boolean;
         projectId: number;
     }>(),
-    { items: () => [], isDraggable: true },
+    { items: () => [], isDraggable: true, allowNewTask: true },
 );
 
 const pId = computed(() => props.projectId);
@@ -38,16 +41,20 @@ const initItems = (items: TransformedTask[]) => {
 onMounted(() => initItems(props.items));
 watch(
     () => props.items,
-    () => {
-        initItems(props.items);
+    (value, oldValue) => {
+        initItems(value);
+        const oldLength = oldValue?.length ?? 0;
+        if (value.length > oldLength && !store.search) {
+            updateSortKeys(internItems.value);
+        }
     },
 );
 const internItems = ref<TransformedTask[]>([]);
-watch(internItems, (newValue, oldValue) => {
-    if (newValue.length >= oldValue.length) {
-        updateSortKeys(newValue);
+const onDragEnd = () => {
+    if (!store.search) {
+        updateSortKeys(internItems.value);
     }
-});
+};
 const { updateTask } = useTasks(pId);
 const updateSortKeys = (newAr: TransformedTask[]) => {
     const half = 2,
@@ -141,7 +148,7 @@ const listIsOpen = ref();
 </script>
 <template>
     <div
-        class="flex max-h-[700px] flex-shrink-0 flex-col rounded-lg bg-gray-50 shadow-md"
+        class="flex max-h-[700px] flex-shrink-0 flex-col rounded-lg bg-gray-50 shadow-md transition-all duration-200 ease-in-out"
         :class="list.isCollapsed ? 'min-h-[300px] w-12' : 'w-96'"
     >
         <div
@@ -183,7 +190,7 @@ const listIsOpen = ref();
                         size="0"
                     />
                     <Button
-                        v-if="!list.isCollapsed"
+                        v-if="!list.isCollapsed && allowNewTask"
                         color="green"
                         icon="fas fa-plus"
                         size="S"
@@ -204,9 +211,15 @@ const listIsOpen = ref();
                 class="flex min-h-full flex-col gap-2"
                 group="tasks"
                 item-key="id"
+                @end="onDragEnd"
             >
                 <template #header>
-                    <NewTask v-if="newTaskIsOpen" :list="list" :project-id="projectId" @close="newTaskIsOpen = false" />
+                    <NewTask
+                        v-if="allowNewTask && newTaskIsOpen"
+                        :list="list"
+                        :project-id="projectId"
+                        @close="newTaskIsOpen = false"
+                    />
                 </template>
                 <template #item="{ element }">
                     <Task :item="element" :project-id="projectId" :show-task="showTask" />
@@ -214,7 +227,12 @@ const listIsOpen = ref();
                 <template #footer><div class="pt-px"></div></template>
             </draggable>
             <template v-else>
-                <NewTask v-if="newTaskIsOpen" :list="list" :project-id="projectId" @close="newTaskIsOpen = false" />
+                <NewTask
+                    v-if="allowNewTask && newTaskIsOpen"
+                    :list="list"
+                    :project-id="projectId"
+                    @close="newTaskIsOpen = false"
+                />
                 <Task
                     v-for="item in internItems"
                     :key="item.id"

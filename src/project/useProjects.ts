@@ -19,13 +19,13 @@ export default function useProjects() {
     const projects = computed(() => (categories.value ?? []).filter(cat => cat.shorty?.startsWith('project')));
 
     const createProject = async (project: Project) => {
-        const lastId = projects.value[projects.value.length - 1]?.id ?? 0;
+        const maxId = Math.max(0, ...projects.value.map(p => p.id ?? 0));
         await createDataCategory({
             color: 'basic',
             icon: ICONS.DEFAULT_PROJECT,
             ...project,
             description: project.description ?? '',
-            shorty: `project_${lastId + 1}`,
+            shorty: `project_${maxId + 1}`,
             securityLevelId: 1,
             customModuleId: moduleId.value,
         });

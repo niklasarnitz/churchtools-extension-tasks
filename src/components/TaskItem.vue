@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { Button, DomainObject, DropdownMenu, Tag } from '@churchtools/styleguide';
-import { DELETE_ICON, EDIT_ICON } from '@churchtools/utils';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTask } from '../composables/useTask.ts';
 import { useTasks } from '../composables/useTasks.ts';
+import { PRIORITY_BADGE_COLORS, STATUS_BADGE_COLORS, getPriorityLabel, getStatusLabel } from '../constants/taskConfig';
+import DialogChangeProject from './DialogChangeProject.vue';
 import ProgressRing from './ProgressRing.vue';
+
+const EDIT_ICON = 'fas fa-pen';
+const DELETE_ICON = 'fas fa-trash';
 
 const props = defineProps<{
     item: TransformedTask;
@@ -32,12 +36,12 @@ const {
 
 const router = useRouter();
 const openTask = () => {
-    router.push({ ...router.currentRoute, params: { taskId: props.item.id } });
+    router.push({ ...router.currentRoute.value, params: { taskId: props.item.id } });
 };
 
-const showLastRow = computed(() => dueDate.value || props.item.comments?.length || props.item.tags?.length);
+const showLastRow = computed(() => dueDate.value || comments.value?.length || props.item.tags?.length);
 
-const { tasksMap, createTask, deleteTask } = useTasks(pId);
+const { tasksMap, createTask, deleteTask, moveTask } = useTasks(pId);
 
 const createTaskOrSubtask = async ({ id, ...data }: TransformedTask) => {
     void id; // ensure we don't pass an id when creating a new task
@@ -56,6 +60,9 @@ async function duplicateSubtasks(subtaskIds?: number[]) {
     if (subtaskIds?.length) {
         for (const subtaskId of subtaskIds) {
             const originalSubtask = tasksMap.value[subtaskId];
+            if (!originalSubtask) {
+                continue;
+            }
             const nestedSubtaskIds = await duplicateSubtasks(originalSubtask.subTasks);
             const newSubtask = await createTaskOrSubtask({ ...originalSubtask, subTasks: nestedSubtaskIds });
             if (newSubtask) {
@@ -67,14 +74,27 @@ async function duplicateSubtasks(subtaskIds?: number[]) {
     return newSubtaskIds;
 }
 
-const deleteRecursive = (task: TransformedTask) => {
+const deleteRecursive = async (task: TransformedTask) => {
+    if (!task) {
+        return;
+    }
     if (task.subTasks?.length) {
         for (const subtaskId of task.subTasks) {
             const subtask = tasksMap.value[subtaskId];
-            deleteRecursive(subtask);
+            await deleteRecursive(subtask);
         }
     }
-    deleteTask(task.id);
+    await deleteTask(task.id);
+};
+
+const changeProjectDialogIsOpen = ref(false);
+const openChangeProjectDialog = () => {
+    changeProjectDialogIsOpen.value = true;
+};
+
+const onTaskMoved = async (newProjectId: number) => {
+    await moveTask(props.item, newProjectId);
+    changeProjectDialogIsOpen.value = false;
 };
 
 const contextMenu = computed(() => [
@@ -91,9 +111,7 @@ const contextMenu = computed(() => [
                 id: 'move',
                 label: 'In anderes Projekt verschieben',
                 icon: 'fas fa-arrow-left-long',
-                callback: () => {
-                    alert('TODO: change project');
-                },
+                callback: () => openChangeProjectDialog(),
             },
         ],
     },
@@ -105,7 +123,7 @@ const contextMenu = computed(() => [
                 id: 'delete',
                 label: 'Löschen',
                 icon: { icon: DELETE_ICON, class: 'text-red-500' },
-                callback: () => deleteRecursive(props.item),
+                callback: () => void deleteRecursive(props.item),
             },
         ],
     },
@@ -170,7 +188,21 @@ const breadcrumbs = computed(() => {
             {{ item.description }}
         </div>
         <div v-if="showLastRow" class="flex flex-wrap justify-end gap-2">
-            <div class="flex flex-grow items-center gap-3 text-gray-400">
+            <div class="flex flex-grow items-center gap-2 text-gray-400">
+                <span
+                    v-if="item.status"
+                    class="rounded px-2 py-1 text-xs font-semibold text-white"
+                    :style="{ backgroundColor: STATUS_BADGE_COLORS[item.status] || '#808080' }"
+                >
+                    {{ (window as any).i18n?.(getStatusLabel(item.status)) || getStatusLabel(item.status) }}
+                </span>
+                <span
+                    v-if="item.priority"
+                    class="rounded px-2 py-1 text-xs font-semibold text-white"
+                    :style="{ backgroundColor: PRIORITY_BADGE_COLORS[item.priority] || '#808080' }"
+                >
+                    {{ (window as any).i18n?.(getPriorityLabel(item.priority)) || getPriorityLabel(item.priority) }}
+                </span>
                 <Tag
                     v-if="dueDate"
                     :color="dueColor ?? 'basic'"
@@ -197,4 +229,11 @@ const breadcrumbs = computed(() => {
             </div>
         </div>
     </div>
+    <DialogChangeProject
+        v-if="changeProjectDialogIsOpen"
+        :current-project-id="pId"
+        :task="item"
+        @close="changeProjectDialogIsOpen = false"
+        @moved="onTaskMoved"
+    />
 </template>

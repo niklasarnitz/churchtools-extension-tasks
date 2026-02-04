@@ -4,11 +4,20 @@ import Project from './project/Project.vue';
 import Board from './project/views/Board.vue';
 import ListView from './project/views/ListView.vue';
 import MyTasksList from './project/views/MyTasksList.vue';
+import PriorityBoard from './project/views/PriorityBoard.vue';
+import StatusBoard from './project/views/StatusBoard.vue';
 import TagBoard from './project/views/TagBoard.vue';
 import TaskBoard from './project/views/TaskBoard.vue';
+import GlobalMyTasks from './views/GlobalMyTasks.vue';
 import Overview from './views/Overview.vue';
 
 const routes: RouteRecordRaw[] = [
+    {
+        path: '/global-my-tasks/:taskId?',
+        name: 'global-my-tasks',
+        component: GlobalMyTasks,
+        props: true,
+    },
     {
         path: '/:projectId',
         component: Project,
@@ -36,6 +45,18 @@ const routes: RouteRecordRaw[] = [
                 path: 'board/:taskId?',
                 name: 'project-board',
                 component: Board,
+                props: true,
+            },
+            {
+                path: 'status/:taskId?',
+                name: 'project-status',
+                component: StatusBoard,
+                props: true,
+            },
+            {
+                path: 'priority/:taskId?',
+                name: 'project-priority',
+                component: PriorityBoard,
                 props: true,
             },
             {

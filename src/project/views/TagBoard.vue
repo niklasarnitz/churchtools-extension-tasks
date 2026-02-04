@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { Tag } from '@churchtools/styleguide';
-import { computed } from 'vue';
+import { Button, DropdownMenu, Tag, deleteConfirm } from '@churchtools/styleguide';
+import { t } from '@churchtools/utils';
+import { computed, ref } from 'vue';
+import DialogTag from '../../components/DialogTag.vue';
 import List from '../../components/List.vue';
 import { useTags } from '../../composables/useTags';
 import { useTasks } from '../../composables/useTasks';
@@ -10,7 +12,35 @@ const props = defineProps<{ projectId: string }>();
 const projectId = computed(() => parseInt(props.projectId));
 
 const { tasks, showTask } = useTasks(projectId);
-const { tagsArray } = useTags(projectId);
+const { tagsArray, deleteTag } = useTags(projectId);
+
+const editTag = ref<TransformedTag | undefined>();
+const openEditTag = (tag: TransformedTag) => {
+    editTag.value = tag;
+};
+const onDeleteTag = async (tag: TransformedTag) => {
+    const confirmed = await deleteConfirm(`"${tag.name}" ${t('actions.delete.confirmation')}`, {
+        rejectOnCancel: false,
+    });
+    if (confirmed === 'ok') {
+        await deleteTag(tag.id);
+    }
+};
+
+const getTagMenu = (tag: TransformedTag) => [
+    {
+        title: `Tag "${tag.name}"`,
+        items: [
+            { id: 'edit', label: 'Bearbeiten', icon: 'fas fa-pen', callback: () => openEditTag(tag) },
+            {
+                id: 'delete',
+                label: 'Löschen',
+                icon: { icon: 'fas fa-trash', class: 'text-red-500' },
+                callback: () => onDeleteTag(tag),
+            },
+        ],
+    },
+];
 
 const tasksByTag = computed(() => {
     const tagLists: Record<number, TransformedTask[]> = { 0: [] };
@@ -40,15 +70,22 @@ const boardlists = computed(() => {
         <template v-for="list in boardlists" :key="list.id">
             <List
                 v-if="tasksByTag[list.id]"
+                :allow-new-task="false"
                 :is-draggable="false"
                 :items="tasksByTag[list.id]"
                 :list="list"
                 :project-id="projectId"
             >
                 <template #header>
-                    <Tag :color="list.color?.key ?? 'basic'" :label="list.name" />
+                    <div class="flex items-center gap-2">
+                        <Tag :color="list.color?.key ?? 'basic'" :label="list.name" />
+                        <DropdownMenu v-if="list.id !== 0" :menu-items="getTagMenu(list)">
+                            <Button color="basic" icon="fas fa-ellipsis-h" size="S" text />
+                        </DropdownMenu>
+                    </div>
                 </template>
             </List>
         </template>
     </ViewWrapper>
+    <DialogTag v-if="editTag" :project-id="projectId" :tag="editTag" @close="editTag = undefined" />
 </template>

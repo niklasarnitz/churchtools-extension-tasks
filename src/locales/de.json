@@ -1,0 +1,31 @@
+{
+    "tasks": {
+        "status": {
+            "open": "Offen",
+            "in-progress": "In Bearbeitung",
+            "blocked": "Blockiert",
+            "done": "Erledigt"
+        },
+        "priority": {
+            "critical": "Kritisch",
+            "high": "Hoch",
+            "medium": "Mittel",
+            "low": "Niedrig"
+        },
+        "recurrence": {
+            "daily": "Täglich",
+            "weekly": "Wöchentlich",
+            "biweekly": "Zweiwöchentlich",
+            "monthly": "Monatlich",
+            "yearly": "Jährlich"
+        },
+        "reminder": {
+            "none": "Keine",
+            "15min": "15 Minuten",
+            "1hour": "1 Stunde",
+            "1day": "1 Tag",
+            "2days": "2 Tage",
+            "1week": "1 Woche"
+        }
+    }
+}

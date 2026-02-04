@@ -3,11 +3,14 @@ import { Button, Input } from '@churchtools/styleguide';
 import { getFirstOrSelf } from '@churchtools/utils';
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import DialogBoardSettings from '../../components/DialogBoardSettings.vue';
+import DialogExport from '../../components/DialogExport.vue';
+import DialogFilters from '../../components/DialogFilters.vue';
 import DialogList from '../../components/DialogList.vue';
 import DialogTask from '../../components/taskDialog/DialogTask.vue';
 import { taskStore } from '../../composables/storeTasks';
 
-withDefaults(
+const props = withDefaults(
     defineProps<{
         subTaskToggle?: boolean;
         projectId: number;
@@ -20,11 +23,27 @@ const onFullscreen = () => {
     fullscreen.value = !fullscreen.value;
 };
 
+const boardSettingsIsOpen = ref(false);
 const openBoardSettings = () => {
-    alert('TODO: Board settings einstellen');
+    boardSettingsIsOpen.value = true;
+};
+const filtersIsOpen = ref(false);
+const openFilters = () => {
+    filtersIsOpen.value = true;
+};
+const exportIsOpen = ref(false);
+const openExport = () => {
+    exportIsOpen.value = true;
 };
 const store = taskStore();
 const listIsOpen = ref(false);
+
+const toggleShowCompleted = () => {
+    store.showFullfilled = !store.showFullfilled;
+};
+const toggleShowSubTasks = () => {
+    store.showSubTasks = !store.showSubTasks;
+};
 
 const route = useRoute();
 const taskIsOpen = computed(() => !!getFirstOrSelf(route.params.taskId));
@@ -44,6 +63,20 @@ const taskIsOpen = computed(() => !!getFirstOrSelf(route.params.taskId));
                     placeholder="Suchen"
                     :show-label="false"
                 />
+                <Button
+                    :color="store.showFullfilled ? 'green' : 'basic'"
+                    :icon="store.showFullfilled ? 'fas fa-check-square' : 'far fa-square'"
+                    outlined
+                    :title="store.showFullfilled ? 'Erledigte Aufgaben ausblenden' : 'Erledigte Aufgaben anzeigen'"
+                    @click="toggleShowCompleted"
+                />
+                <Button
+                    :color="store.showSubTasks ? 'green' : 'basic'"
+                    icon="fas fa-sitemap"
+                    outlined
+                    :title="store.showSubTasks ? 'Unteraufgaben ausblenden' : 'Unteraufgaben anzeigen'"
+                    @click="toggleShowSubTasks"
+                />
                 <slot name="actions">
                     <Button
                         v-if="$route.name === 'project-board'"
@@ -51,6 +84,8 @@ const taskIsOpen = computed(() => !!getFirstOrSelf(route.params.taskId));
                         outlined
                         @click="listIsOpen = true"
                     />
+                    <Button color="basic" icon="fas fa-filter" outlined title="Filter" @click="openFilters" />
+                    <Button color="basic" icon="fas fa-download" outlined title="Exportieren" @click="openExport" />
                     <Button color="basic" icon="fas fa-cog" outlined @click="openBoardSettings" />
                     <Button
                         color="basic"
@@ -64,6 +99,8 @@ const taskIsOpen = computed(() => !!getFirstOrSelf(route.params.taskId));
                 <div class="tabs flex gap-1">
                     <RouterLink :to="{ name: 'my-tasks' }">Meine Aufgaben</RouterLink>
                     <RouterLink :to="{ name: 'project-board' }">Board</RouterLink>
+                    <RouterLink :to="{ name: 'project-status' }">Status</RouterLink>
+                    <RouterLink :to="{ name: 'project-priority' }">Priorität</RouterLink>
                     <RouterLink :to="{ name: 'project-list' }">Liste</RouterLink>
                     <RouterLink :to="{ name: 'project-tags' }">Tags</RouterLink>
                     <RouterLink :to="{ name: 'project-tasks' }">Aufgaben</RouterLink>
@@ -78,6 +115,13 @@ const taskIsOpen = computed(() => !!getFirstOrSelf(route.params.taskId));
         </div>
         <DialogTask v-if="taskIsOpen" :project-id="projectId" :task-id="getFirstOrSelf(route.params.taskId)" />
         <DialogList v-if="listIsOpen" :project-id="projectId" @close="listIsOpen = false" />
+        <DialogFilters v-if="filtersIsOpen" :project-id="projectId" @close="filtersIsOpen = false" />
+        <DialogExport v-if="exportIsOpen" :project-id="projectId" @close="exportIsOpen = false" />
+        <DialogBoardSettings
+            v-if="boardSettingsIsOpen"
+            :project-id="props.projectId"
+            @close="boardSettingsIsOpen = false"
+        />
     </div>
 </template>
 <style scoped>

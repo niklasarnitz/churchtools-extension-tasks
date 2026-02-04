@@ -26,6 +26,20 @@ const projects = computed(() => (data.value ?? []).filter(cat => cat.shorty.star
     />
     <div>
         <PageHeader
+            :actions="[
+                {
+                    icon: 'fas fa-list-check',
+                    label: 'Meine Aufgaben (Alle Projekte)',
+                    color: 'blue',
+                    to: { name: 'global-my-tasks' },
+                },
+                {
+                    icon: 'fas fa-plus',
+                    label: 'Neues Projekt',
+                    color: 'green',
+                    onClick: createOrEditProject,
+                },
+            ]"
             class="pt-page-header-full-width mb-page-header-full-width mx-4 lg:mx-6"
             :icon="ICONS.MAIN"
             :title="txx('Projekte')"

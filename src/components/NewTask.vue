@@ -22,6 +22,9 @@ onMounted(() => {
 
 const task = ref({ list: props.list.id } as Task);
 const onCreateTask = async () => {
+    if (!task.value.name?.trim()) {
+        return;
+    }
     const newTask = await createTask({ ...task.value });
     if (newTask) {
         emit('created', newTask);
